@@ -1,0 +1,11 @@
+Package: firefox-official
+Priority: optional
+Section: web
+Maintainer: No One <noone@example.com>
+Architecture: amd64
+Version: {version}
+Conflicts: firefox
+Provides: gnome-www-browser, iceweasel, www-browser
+Depends: lsb-release, libc6, libstdc++6
+Description: Safe and easy web browser from Mozilla
+ This is an automatically created package by firefox-deb-maker
