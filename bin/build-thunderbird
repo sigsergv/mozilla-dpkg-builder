@@ -20,19 +20,25 @@ def copy_tpl(src, dst, values):
         with open(dst, 'w') as dst_fp:
             dst_fp.write(data)
 
+ALL_CHANNELS = ['release', 'beta', 'esr']
+
 parser = argparse.ArgumentParser(description='Download Thunderbird binaries and repack them into a deb-package.')
-parser.add_argument('--channel', dest='channel', default='release', help='Release channel, beta or release, default is release [BETA IS NOT AVAILABLE NOW]')
+parser.add_argument('--channel', dest='channel', default='release', help='Release channel, beta, release or esr, default is release')
 args = parser.parse_args()
 
-if args.channel not in ('release', ):
+
+if args.channel not in ALL_CHANNELS:
     print('Unknown channel: %s' % args.channel)
     sys.exit(1)
 
 if args.channel == 'beta':
     # not supported actually
-    ARCHIVE_URL = 'https://download.mozilla.org/?product=thunderbird-latest-SSL&os=linux64&lang=en-US'
+    ARCHIVE_URL = 'https://download.mozilla.org/?product=thunderbird-beta-latest-SSL&os=linux64&lang=en-US'
 elif args.channel == 'release':
     ARCHIVE_URL = 'https://download.mozilla.org/?product=thunderbird-latest-SSL&os=linux64&lang=en-US'
+elif args.channel == 'esr':
+    # https://download.mozilla.org/?product=thunderbird-128.4.0esr-SSL&os=linux64&lang=en-US
+    ARCHIVE_URL = 'https://download.mozilla.org/?product=thunderbird-esr-latest-SSL&os=linux64&lang=en-US'
 
 # prepare files and dirs
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -87,7 +93,14 @@ os.makedirs(debian_dst)
 for d in ['usr/lib/thunderbird', 'usr/share/pixmaps', 'usr/share/applications', 'usr/bin']:
     os.makedirs(os.path.join(pkg_dst, d))
 
-copy_tpl(os.path.join(TEMPLATES_DIR, 'control'), os.path.join(debian_dst, 'control'), {'version':full_version})
+conflict_channels = ALL_CHANNELS.copy()
+conflict_channels.remove(args.channel)
+repl = {
+    'version': full_version,
+    'channel': args.channel,
+    'conflicts': ', '.join([f'thunderbird-{x}' for x in conflict_channels])
+}
+copy_tpl(os.path.join(TEMPLATES_DIR, 'control'), os.path.join(debian_dst, 'control'), repl)
 
 # copy other files
 dst_usr = os.path.join(pkg_dst, 'usr/lib/thunderbird')

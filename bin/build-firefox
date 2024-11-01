@@ -20,11 +20,13 @@ def copy_tpl(src, dst, values):
         with open(dst, 'w') as dst_fp:
             dst_fp.write(data)
 
+ALL_CHANNELS = ['release', 'beta', 'esr']
+
 parser = argparse.ArgumentParser(description='Download Firefox binaries and repack them into a deb-package.')
-parser.add_argument('--channel', dest='channel', default='release', help='Release channel, beta or release, default is release')
+parser.add_argument('--channel', dest='channel', default='release', help='Release channel, beta, release or esr, default is release')
 args = parser.parse_args()
 
-if args.channel not in ('beta', 'release'):
+if args.channel not in ALL_CHANNELS:
     print('Unknown channel: %s' % args.channel)
     sys.exit(1)
 
@@ -32,6 +34,8 @@ if args.channel == 'beta':
     ARCHIVE_URL = 'https://download.mozilla.org/?product=firefox-beta-latest-ssl&os=linux64&lang=en-US'
 elif args.channel == 'release':
     ARCHIVE_URL = 'https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=en-US'
+elif args.channel == 'esr':
+    ARCHIVE_URL = 'https://download.mozilla.org/?product=firefox-esr-latest-ssl&os=linux64&lang=en-US'
 
 
 # prepare files and dirs
@@ -89,7 +93,14 @@ for d in ['usr/lib/firefox', 'usr/share/pixmaps', 'usr/share/applications', 'usr
         'usr/lib/firefox-addons/searchplugins']:
     os.makedirs(os.path.join(pkg_dst, d))
 
-copy_tpl(os.path.join(TEMPLATES_DIR, 'control'), os.path.join(debian_dst, 'control'), {'version':full_version})
+conflict_channels = ALL_CHANNELS.copy()
+conflict_channels.remove(args.channel)
+repl = {
+    'version': full_version,
+    'channel': args.channel,
+    'conflicts': ', '.join([f'thunderbird-{x}' for x in conflict_channels])
+}
+copy_tpl(os.path.join(TEMPLATES_DIR, 'control'), os.path.join(debian_dst, 'control'), repl)
 
 # copy other files
 dst_usr = os.path.join(pkg_dst, 'usr/lib/firefox')
